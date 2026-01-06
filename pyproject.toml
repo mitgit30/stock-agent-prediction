@@ -20,6 +20,7 @@ dependencies = [
     "numpy>=2.4.0",
     "pandas>=2.3.3",
     "plotly>=6.5.0",
+    "portalocker>=3.2.0",
     "prometheus-fastapi-instrumentator>=7.1.0",
     "psutil>=7.2.1",
     "python-dotenv>=1.2.1",

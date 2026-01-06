@@ -3,7 +3,7 @@ class ApiError(Exception):
     def __init__(self, message):
         self.message = message
         
-class PipelineEror(Exception):
+class PipelineError(Exception):
     "Custom exception class for pipeline errors."
     def __init__(self, message):
         self.message = message
