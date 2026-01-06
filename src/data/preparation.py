@@ -20,7 +20,7 @@ class StockDataset(Dataset):
             
             # this for loop converts normalized stock features into rolling time-series sequences so a PyTorch model can learn to predict future prices from past behavior.
             # from each time step t, it takes the previous context_len steps as input (past) and the next pred_len steps as target (fut).
-            # the prediction will of 7 days into the future based on the past 30 days of data.
+            # the prediction will of 5 days into the future based on the past 60 days of data.
             for t in range(context_len, len(df) - pred_len):
                 past = vals[t - context_len:t]
                 fut = vals[t:t + pred_len]
