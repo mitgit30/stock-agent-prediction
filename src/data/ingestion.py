@@ -94,7 +94,7 @@ def fetch_ohlcv(
             os.makedirs(os.path.dirname(data_path), exist_ok=True)
             
             import portalocker
-             # this fcntl module does the work of file data locking
+             # this portallocker module does the work of file data locking
             # -If by mistakenly running multiple pipelines at the same time it  wont corrupt the feature data.
             # this is an important step to ensure data consistency in the production environment.
             lock_path = data_path + ".lock"
