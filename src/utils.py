@@ -4,7 +4,7 @@ import pandas as pd
 import mlflow
 from typing import Dict
 from src.config import Config
-from src.exception import PipelineEror
+from src.exception import PipelineError
 from logger.logger import get_logger
 from dotenv import load_dotenv
 
@@ -89,7 +89,7 @@ def save_dict_to_json(data: Dict, file_path: str):
         return file_path
     
     except Exception as e:
-        raise PipelineEror(f"Error saving dictionary to JSON: {e}")       
+        raise PipelineError(f"Error saving dictionary to JSON: {e}")       
                 
                 
     

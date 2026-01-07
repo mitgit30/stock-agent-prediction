@@ -18,8 +18,12 @@ def save_model(model,scaler:StandardScaler,path:str,model_type="parent",ticker=N
     """
     
     try:
-        os.makedirs(path,exist_ok=)
+        os.makedirs(path,exist_ok=True)
         torch_path=os.path.join(path,"model.pt")
+        
+        if model_type != "parent" and not ticker:
+            raise PipelineError("Ticker must be provided for child models")
+
         scaler_filename="parent_scaler.pkl" if model_type=="parent" else f"{ticker}_child_scaler.pkl"
         scaler_path=os.path.join(path,scaler_filename)
         torch.save(model.state_dict(),torch_path)
