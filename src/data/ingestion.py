@@ -4,8 +4,8 @@ from typing import Optional
 
 import pandas as pd
 import yfinance as yf
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from src.config import Config
 from src.exception import PipelineError
 
