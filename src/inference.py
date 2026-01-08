@@ -61,6 +61,5 @@ def predict_one_step_and_week(model, df: pd.DataFrame, scaler: StandardScaler, t
         
     except Exception as e:
         raise PipelineError(f"Error predicting next 5 days forcast: {e}")
-        }
-
+    
         
