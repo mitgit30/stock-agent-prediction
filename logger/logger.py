@@ -12,7 +12,7 @@ log_dir = "logs"
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-log_file = os.path.join(log_dir, f"pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+log_file = os.path.join(log_dir, f"pipeline_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
 file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 

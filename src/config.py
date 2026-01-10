@@ -15,7 +15,7 @@ class Config:
     child_tickers: List[str] = field(default_factory=lambda: ["GOOG", "AMZN", "META", "TSLA", "MSFT"])
     start_date: str = "2004-08-19" # Earliest date for Yahoo Finance data for an specific stock
     parent_epochs: int = 20
-    child_epochs: int = 10
+    child_epochs: int = 20
     transfer_strategy: str = "freeze"  # Options : can choose "freeze" or "fine-tune"
     fine_tune_lr: float = 1e-4
     parent_dir: str = "outputs/parent"

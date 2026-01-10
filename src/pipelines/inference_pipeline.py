@@ -151,7 +151,7 @@ def predict_child(ticker: str):
                 logger.warning(f"Failed to fetch from Feast: {e}")
         preds = predict_one_step_and_week(model, df, scaler, ticker)
 
-        # Prepare features (history) for frontend plotting
+        # Prepare features (history)
         # Get last 30 days of history
         history_df = df.tail(30).copy()
         # Normalize columns keys

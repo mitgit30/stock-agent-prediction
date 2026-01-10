@@ -25,22 +25,52 @@ def predict_one_step_and_week(model, df: pd.DataFrame, scaler: StandardScaler, t
             x_tensor = torch.tensor(X, dtype=torch.float32).to(config.device)
             pred = model(x_tensor).cpu().numpy()[0]
         
-        pred_inverse = scaler.inverse_transform(pred.reshape(-1,config.input_size,))[:,:5]
+        pred_returns = scaler.inverse_transform(pred.reshape(-1,config.input_size,))[:,:5]
+        
+        ## reconstructed price from from last actual values
+        last_row = df.iloc[-1]
+
+        last_open = last_row["Open"]
+        last_high = last_row["High"]
+        last_low = last_row["Low"]
+        last_close = last_row["Close"]
+        last_volume = last_row["Volume"]
+        
+        
+        forecast = []
+        current_open, current_high, current_low, current_close, current_volume = (
+            last_open, last_high, last_low, last_close, last_volume
+        )
+        
+        for step in range(config.pred_len):
+            r_open, r_high, r_low, r_close, r_vol = pred_returns[step]
+
+            next_open = current_open * np.exp(r_open)
+            next_high = current_high * np.exp(r_high)
+            next_low = current_low * np.exp(r_low)
+            next_close = current_close * np.exp(r_close)
+            next_volume = current_volume * np.exp(r_vol)
+            
+        # Forwarding the data
+            
+            current_open, current_high, current_low, current_close, current_volume = (
+                next_open, next_high, next_low, next_close, next_volume
+            )
+
         
         ## Prepare dates
         last_date=df["date"].iloc[-1]
         next_days = pd.bdate_range(last_date + pd.Timedelta(days=1), periods=config.pred_len)
         
          # Construct forecasts
-        forecast = []
         for i, date in enumerate(next_days):
             forecast.append({
                 "date": str(date.date()),
-                "open": float(pred_inverse[i][0]),
-                "high": float(pred_inverse[i][1]),
-                "low": float(pred_inverse[i][2]),
-                "close": float(pred_inverse[i][3]),
-                "volume": float(pred_inverse[i][4])
+                "open": float(pred_returns[i][0]),
+                "high": float(pred_returns[i][1]),
+                "low": float(pred_returns[i][2]),
+                "close": float(pred_returns[i][3]),
+                "volume": float(pred_returns[i][4])
             })
 
         # Response structure

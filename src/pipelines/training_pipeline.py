@@ -139,7 +139,7 @@ def train_child(ticker: str) -> Dict:
 
             parent_model = LSTMModel().to(cfg.device)
             parent_model.load_state_dict(torch.load(parent_model_path, map_location=cfg.device))
-            logger.info(f"🔁 Loaded parent weights from {parent_model_path}")
+            logger.info(f" Loaded parent weights from {parent_model_path}")
 
             # Transfer Learning Strategy
             learning_rate = 3e-4
