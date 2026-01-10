@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from torch.utils.data import Dataloader
+from torch.utils.data import DataLoader
 import mlflow
 from src.config import Config
 from logger.logger import get_logger
@@ -9,7 +9,7 @@ from logger.logger import get_logger
 
 logger = get_logger() # Initialize logger for training module to log training process details
 
-def fit_model(model:nn.Module,train_loader:Dataloader,val_loader:Dataloader,epochs:int=8,lr:float=1e-3) -> nn.Module:
+def fit_model(model:nn.Module,train_loader:DataLoader,val_loader:DataLoader,epochs:int=8,lr:float=1e-3) -> nn.Module:
     
     """
     Train the LSTM model with early stopping 
