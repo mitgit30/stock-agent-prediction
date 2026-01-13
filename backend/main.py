@@ -29,7 +29,6 @@ app.add_middleware(
 
 # Register routers
 app.include_router(router)
-app.include_router(router_predict)
 
 
 @app.get("/")

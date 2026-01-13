@@ -73,7 +73,7 @@ def predict_one_step_and_week(model, df: pd.DataFrame, scaler: StandardScaler, t
                 "volume": float(pred_returns[i][4])
             })
 
-        # Response structure
+        # return response structure
         return {
             "ticker": ticker,
             "last_date": str(last_date.date()),

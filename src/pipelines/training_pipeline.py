@@ -67,7 +67,7 @@ def train_parent() -> Dict:
             scaler = StandardScaler().fit(df[cfg.features])
             dataset = StockDataset(df, scaler)
 
-            train_size = int(0.8 * len(dataset)) # 805 of data for training 
+            train_size = int(0.8 * len(dataset)) # 80% of data for training 
             train_ds, val_ds = torch.utils.data.random_split(
                 dataset, [train_size, len(dataset) - train_size]
             )
