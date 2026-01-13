@@ -7,7 +7,7 @@ from prometheus_client import CollectorRegistry , Gauge , Counter , Histogram
 
 # initialize redis client
 
-redis_client=Optional[redis.Redis]=None
+redis_client:Optional[redis.Redis]=None
 
 # Setup the metrics for prometheus
 
