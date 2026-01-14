@@ -53,5 +53,32 @@ def get_or_set_cache(key:str , compute_func,expire:int=86400): # set the cache f
     except Exception as e:
         logger.error(f"Failed to get or set cache: {e}")
         return compute_func() , False
-                 
+    
+## implementing redis task status tracking fucntions
+
+def get_task_key(task_id:str):
+    return f"task_status_key:{task_id.lower()}"
+    
+def set_task_status(task_id:str , status:Dict[str,any],ttl:int=3600): # set or save the task ins redis for 1 hour 
+    """set or save the task status in redis for 1 hour"""
+    try:
+        if redis_client:
+            redis_client.set(get_task_key(task_id),json.dumps(status),ex=ttl)
+    except Exception as e:
+        logger.error(f"Failed to set/save task status for {task_id}: {e}")
+
+# get the task status from redis
+
+def get_task_status(task_id:str):
+    try:
+        if redis_client:
+            value = redis_client.get(get_task_key(task_id))
+            if value:
+                logger.info(f"Retrieved task status for {task_id}: {value}")
+                return json.loads(value)
+
+    except Exception as e:
+        logger.error(f"Failed to get task status for {task_id}: {e}")
+        
+
     
