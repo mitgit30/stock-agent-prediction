@@ -5,7 +5,9 @@ from typing import Dict , List , Optional
 import json
 from logger.logger import get_logger
 import psutil # for retrieving system metrics
-import threading
+# import threading # for background tasks
+import asyncio
+
 
 
 from backend.metrics import SYSTEM_CPU , SYSTEM_RAM , TRAINING_DURATION , REDIS_KEYS , CACHE_HIT , CACHE_MISS , redis_client,TRAINING_MSE,TRAINING_STATUS,SYSTEM_DISK
@@ -82,36 +84,60 @@ def get_task_status(task_id:str):
         logger.error(f"Failed to get task status for {task_id}: {e}")
         
 
-# run the training task 
 
+ # implement an training worker function for avoiding crashing of the main thread\
+     
+async def traing_worker(task_id:str , func):
+    loop = asyncio.get_running_loop()
+    
+    try:
+        logger.info(f"Starting training task for {task_id}")
+        await loop.run_in_executor(None,func,task_id)
+        
+        status = {
+            "status":"completed",
+            "end_time":datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        set_task_status(task_id,status) 
+        
+        TRAINING_STATUS.labels(task_id).set(2)
+        logger.info(f"Training completed for {task_id}")
+    
+    except Exception as e:
+        logger.info(f"Training failed for {task_id}: {e}")
+        status={
+            "status":"failed",
+            "end_time":datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+             
+        set_task_status(task_id=task_id,status=status)
+        TRAINING_STATUS.labels(task_id).set(0)       
+        
+
+
+# run the training task that will be used in api calls
 def run_training(task_id:str , func ):
+    task_id= task_id.lower()
     
-    """ 
-    start the training task and return the task status immediately
+    current_status = get_task_status(task_id=task_id)
     
-    """
-    
-    task_id = task_id.lower()
-    
-    # check if any task is currently running
-    
-    current_task_status = get_task_status(task_id)
-    if current_task_status and current_task_status["status"] == "running":
-        logger.info(f"Task {task_id} is already running")
-        return None 
-    
-    # initiate new status
-    
-    status_data = {"status": "running" , "start_time":datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") , "end_time":None}
-    set_task_status(task_id,status_data,ttl=7200) # set the task status for 2 hours 
-    
+    if current_status and current_status.get("status") == "running":
+        logger.info(f"Training task for {task_id} is already running")
+        return None
 
+    status = {
+        "status":"running",
+        "end_time":datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+    set_task_status(task_id=task_id,status=status)
+    
     TRAINING_STATUS.labels(task_id).set(1)
     
-    # start the background task using threading
+    # execute the background task with asyncio event loop
     
-    thread = threading.Thread(target=func , args=(task_id,))
-    thread.start()
+    asyncio.create_task(traing_worker(task_id=task_id,func=func))
     
-    return status_data
+    
+
     
