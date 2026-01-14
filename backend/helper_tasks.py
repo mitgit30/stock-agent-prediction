@@ -5,7 +5,8 @@ from typing import Dict , List , Optional
 import json
 from logger.logger import get_logger
 import psutil # for retrieving system metrics
-from logger.logger import get_logger
+import threading
+
 
 from backend.metrics import SYSTEM_CPU , SYSTEM_RAM , TRAINING_DURATION , REDIS_KEYS , CACHE_HIT , CACHE_MISS , redis_client,TRAINING_MSE,TRAINING_STATUS,SYSTEM_DISK
 # cpu = psutil.cpu_percent()
@@ -59,7 +60,7 @@ def get_or_set_cache(key:str , compute_func,expire:int=86400): # set the cache f
 def get_task_key(task_id:str):
     return f"task_status_key:{task_id.lower()}"
     
-def set_task_status(task_id:str , status:Dict[str,any],ttl:int=3600): # set or save the task ins redis for 1 hour 
+def set_task_status(task_id:str , status:Dict[str],ttl:int=7200): # set or save the task ins redis for 1 hour 
     """set or save the task status in redis for 1 hour"""
     try:
         if redis_client:
@@ -81,4 +82,36 @@ def get_task_status(task_id:str):
         logger.error(f"Failed to get task status for {task_id}: {e}")
         
 
+# run the training task 
+
+def run_training(task_id:str , func ):
+    
+    """ 
+    start the training task and return the task status immediately
+    
+    """
+    
+    task_id = task_id.lower()
+    
+    # check if any task is currently running
+    
+    current_task_status = get_task_status(task_id)
+    if current_task_status and current_task_status["status"] == "running":
+        logger.info(f"Task {task_id} is already running")
+        return None 
+    
+    # initiate new status
+    
+    status_data = {"status": "running" , "start_time":datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") , "end_time":None}
+    set_task_status(task_id,status_data,ttl=7200) # set the task status for 2 hours 
+    
+
+    TRAINING_STATUS.labels(task_id).set(1)
+    
+    # start the background task using threading
+    
+    thread = threading.Thread(target=func , args=(task_id,))
+    thread.start()
+    
+    return status_data
     
