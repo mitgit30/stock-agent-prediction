@@ -1,14 +1,12 @@
 # writing helper fucntions for backend and monitoring tasks
 
 import datetime
-from typing import Dict , List , Optional
+from typing import Dict , List , Optional,Any
 import json
 from logger.logger import get_logger
 import psutil # for retrieving system metrics
 # import threading # for background tasks
 import asyncio
-
-
 
 from backend.metrics import SYSTEM_CPU , SYSTEM_RAM , TRAINING_DURATION , REDIS_KEYS , CACHE_HIT , CACHE_MISS , redis_client,TRAINING_MSE,TRAINING_STATUS,SYSTEM_DISK
 # cpu = psutil.cpu_percent()
@@ -45,13 +43,13 @@ def get_or_set_cache(key:str , compute_func,expire:int=86400): # set the cache f
             value = redis_client.get(key)
             
             if value:
-                CACHE_HIT.labels(key).inc() # increment the cache hit counter
+                CACHE_HIT.labels(cache_names=key).inc() # increment the cache hit counter
                 return json.loads(value),True    # return the value from the cache
             
         result = compute_func()
         if redis_client:
             redis_client.set(key , json.dumps(result) , ex=expire)
-            CACHE_MISS.labels(key).inc() # increment the cache miss counter
+            CACHE_MISS.labels(cache_names=key).inc() # increment the cache miss counter
         return result , False # return the value from the compute function
     except Exception as e:
         logger.error(f"Failed to get or set cache: {e}")
@@ -62,7 +60,7 @@ def get_or_set_cache(key:str , compute_func,expire:int=86400): # set the cache f
 def get_task_key(task_id:str):
     return f"task_status_key:{task_id.lower()}"
     
-def set_task_status(task_id:str , status:Dict[str],ttl:int=7200): # set or save the task ins redis for 1 hour 
+def set_task_status(task_id:str , status:Dict[str,Any],ttl:int=7200): # set or save the task in redis for 2 hour 
     """set or save the task status in redis for 1 hour"""
     try:
         if redis_client:
@@ -85,14 +83,13 @@ def get_task_status(task_id:str):
         
 
 
- # implement an training worker function for avoiding crashing of the main thread\
-     
-async def traing_worker(task_id:str , func):
+async def training_worker(task_id:str , func):
     loop = asyncio.get_running_loop()
     
     try:
         logger.info(f"Starting training task for {task_id}")
-        await loop.run_in_executor(None,func,task_id)
+        # Call the function without passing task_id since train_parent() takes no arguments
+        await loop.run_in_executor(None, func)
         
         status = {
             "status":"completed",
@@ -100,7 +97,7 @@ async def traing_worker(task_id:str , func):
         }
         set_task_status(task_id,status) 
         
-        TRAINING_STATUS.labels(task_id).set(2)
+        TRAINING_STATUS.labels(job=task_id).set(0)
         logger.info(f"Training completed for {task_id}")
     
     except Exception as e:
@@ -111,12 +108,12 @@ async def traing_worker(task_id:str , func):
         }
              
         set_task_status(task_id=task_id,status=status)
-        TRAINING_STATUS.labels(task_id).set(0)       
+        TRAINING_STATUS.labels(job=task_id).set(-1)       
         
 
 
 # run the training task that will be used in api calls
-def run_training(task_id:str , func ):
+async def run_training(task_id:str , func ):
     task_id= task_id.lower()
     
     current_status = get_task_status(task_id=task_id)
@@ -127,17 +124,18 @@ def run_training(task_id:str , func ):
 
     status = {
         "status":"running",
-        "end_time":datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "start_time":datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
     set_task_status(task_id=task_id,status=status)
     
-    TRAINING_STATUS.labels(task_id).set(1)
+    TRAINING_STATUS.labels(job=task_id).set(1)
     
-    # execute the background task with asyncio event loop
+    # Create background task in the event loop
+    asyncio.create_task(training_worker(task_id, func))
     
-    asyncio.create_task(traing_worker(task_id=task_id,func=func))
+    logger.info(f"Background training task created for {task_id}")
     
-    
+     
 
     
