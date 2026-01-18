@@ -1,8 +1,11 @@
 from typing import Any, Dict , List 
 from prometheus_client import CollectorRegistry, Gauge, Histogram, Counter
+from concurrent.futures import ThreadPoolExecutor # for multithreading the 
 # Metrics ( updating prometheous metrics)
 
 registry = CollectorRegistry()
+executor = ThreadPoolExecutor(max_workers=4)
+
 SYSTEM_CPU = Gauge("system_cpu_percent", "CPU percent", registry=registry)
 SYSTEM_RAM = Gauge("system_ram_used_mb", "RAM MB", registry=registry)
 SYSTEM_DISK = Gauge("system_disk_used_mb", "Disk Used MB", registry=registry)

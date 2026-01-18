@@ -7,11 +7,12 @@ import redis
 from typing import Any , Dict , List ,Optional
 import psutil # for system metrics
 
+import datetime
 from backend.redis_server.redis_client import client
 
 from backend.metrics import (
     REDIS_KEYS , REDIS_STATUS , TRAINING_DURATION , TRAINING_STATUS,
-    CACHE_HIT , CACHE_MISS ,
+    CACHE_HIT , CACHE_MISS , executor,
     PREDICTION_COUNTER , PREDICTION_LATENCY , TRAINING_MSE ,SYSTEM_CPU ,SYSTEM_DISK ,SYSTEM_RAM
 )
 from logger.logger import get_logger
@@ -98,3 +99,71 @@ def get_task_status_redis(task_id:str)->Optional[Dict[str , Any]]:
         logger.error(f"Redis get task status error for {task_id}: {e}")
     return None
 
+# defning training worker for main run training fucntion that will be carried out in background with the help of asyncio
+
+async def training_worker(task_id:str,func , *args , chain_func=None):
+    """Background task for training"""
+    
+    loop = asyncio.get_event_loop()
+    start_time = time.time()
+    
+    try:
+        result = await loop.run_in_executor(None, func, *args)
+        
+        if chain_func:
+            logger.info(f"Training complete : Task-id --> {task_id}, running chain function/task")
+            # Run the chain function for caching and prediction
+            
+            await loop.run_in_executor(executor=executor , func=chain_func)         
+            
+            logger.info(f"Chain function complete : Task-id --> {task_id}")   
+            
+        duration = time.time - start_time
+        TRAINING_DURATION.labels(task_id).observe(duration)
+        
+        status_data = {"status": "completed", "result": result, "completed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        save_task_status(task_id, status_data, ttl=3600) # Keep completed status for 1 hour
+        
+        TRAINING_STATUS.labels(task_id).set(2) # set training status to completed
+        
+    except Exception as e:
+        logger.error(f"Training error for task-id {task_id}: {e}")
+        status_data = {"status": "error", "error": str(e), "completed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        save_task_status(task_id, status_data, ttl=3600) # Keep error status for 1 hour
+        
+        TRAINING_STATUS.labels(task_id).set(0) # set training status to idle
+        
+# defining a function that will run a blocking function in the thread pool 
+async def run_blocking_fn(fn, *args):
+    """Run a blocking function in the thread pool."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, fn, *args) # run the function in the thread pool because it can execute in parallel
+
+# defining main run training fucntion that will be carried out in background with the help of asyncio
+
+async def run_training(task_id:str , func , *args , chain_func=None):
+    """
+    start the training in background
+    """
+    task_id = task_id.lower()
+    
+    # check if task is already running
+    current_status = get_task_status_redis(task_id)
+    if current_status and current_status.get("status") == "running":
+        return
+    
+    # set initial status
+    status_data = {
+        "status": "running",
+        "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        
+    }
+    
+    save_task_status(task_id, status_data, ttl=3600*2) # Keep running status for 2 hour4
+    
+    TRAINING_STATUS.labels(task_id).set(1) # set training status to running
+    
+    # execute the background task
+    asyncio.create_task(training_worker(task_id, func, *args, chain_func=chain_func))
+    
+    
