@@ -23,6 +23,7 @@ logs
 
 # Outputs
 outputs/
+outputs_main/
 
 # No data 
 /data/

@@ -1,33 +1,17 @@
-# write an inference pipeline 
-import redis
-import logger
-from typing import Dict , List , Optional
-    
-from prometheus_client import CollectorRegistry , Gauge , Counter , Histogram
-
-# initialize redis client
-
-redis_client:Optional[redis.Redis]=None
-
-# Setup the metrics for prometheus
+from typing import Any, Dict , List 
+from prometheus_client import CollectorRegistry, Gauge, Histogram, Counter
+# Metrics ( updating prometheous metrics)
 
 registry = CollectorRegistry()
-
-SYSTEM_RAM=Gauge("system_ram", "system_ram", registry=registry)
-SYSTEM_CPU=Gauge("system_cpu", "system_cpu", registry=registry)
-SYSTEM_DISK=Gauge("system_disk", "system_disk", registry=registry)
-SYSTEM_NETWORK=Gauge("system_network", "system_network", registry=registry)
-SYSTEM_CPU_USAGE=Gauge("system_cpu_usage", "system_cpu_usage", registry=registry)
-REDIS_STATUS=Gauge("redis_status", "redis_status", registry=registry)
-REDIS_KEYS=Gauge("redis_keys", "redis_keys", registry=registry)
-
-TRAINING_STATUS = Gauge("training_status", "training_parent", registry=registry,labelnames=["job"])
-TRAINING_LOSS = Gauge("training_loss", "training_loss", registry=registry)
-TRAINING_ACCURACY = Gauge("training_accuracy", "training_accuracy", registry=registry)
-TRAINING_TIME = Gauge("training_time", "training_time", registry=registry)
-TRAINING_MSE = Gauge("training_mse", "training_mse", registry=registry)
-TRAINING_DURATION = Gauge("training_duration", "training_duration", registry=registry)
-
-CACHE_HIT = Counter("cache_hit", "cache_hit", registry=registry,labelnames=["cache_names"])
-CACHE_MISS = Counter("cache_miss", "cache_miss", registry=registry,labelnames=["cache_names"])
-
+SYSTEM_CPU = Gauge("system_cpu_percent", "CPU percent", registry=registry)
+SYSTEM_RAM = Gauge("system_ram_used_mb", "RAM MB", registry=registry)
+SYSTEM_DISK = Gauge("system_disk_used_mb", "Disk Used MB", registry=registry)
+REDIS_STATUS = Gauge("redis_up", "Redis up=1/down=0", registry=registry)
+REDIS_KEYS = Gauge("redis_keys_total", "Number of keys in Redis", registry=registry)
+TRAINING_STATUS = Gauge("training_status", "0=idle 1=running 2=completed", ["task_id"], registry=registry)
+TRAINING_MSE = Gauge("training_mse_last", "Last training MSE", registry=registry)
+TRAINING_DURATION = Histogram("training_duration_seconds", "Training duration in seconds", ["task_id"], registry=registry)
+PREDICTION_COUNTER = Counter("prediction_total", "Total predictions", ["type"], registry=registry)
+PREDICTION_LATENCY = Histogram("prediction_latency_seconds", "Prediction latency", ["type"], registry=registry)
+CACHE_HIT = Counter("redis_cache_hit_total", "Cache hits", ["key"], registry=registry)
+CACHE_MISS = Counter("redis_cache_miss_total", "Cache misses", ["key"], registry=registry)
