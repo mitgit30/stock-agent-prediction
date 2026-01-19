@@ -7,7 +7,7 @@ import redis
 from typing import Any , Dict , List ,Optional
 import psutil # for system metrics
 
-import datetime
+from datetime import datetime
 from backend.redis_server.redis_client import client
 
 from backend.metrics import (
@@ -106,9 +106,6 @@ async def training_worker(task_id:str,func , *args , chain_func=None):
     
     loop = asyncio.get_event_loop()
     start_time = time.time()
-    client.hset("user", mapping={
-        
-    })
     try:
         result = await loop.run_in_executor(None, func, *args)
         
@@ -116,12 +113,12 @@ async def training_worker(task_id:str,func , *args , chain_func=None):
             logger.info(f"Training complete : Task-id --> {task_id}, running chain function/task")
             # Run the chain function for caching and prediction
             
-            await loop.run_in_executor(executor=executor , func=chain_func)         
+            await loop.run_in_executor(executor , chain_func)         
             
             logger.info(f"Chain function complete : Task-id --> {task_id}")   
             
-        duration = time.time - start_time
-        TRAINING_DURATION.labels(task_id).observe(duration)
+        duration = time.time() - start_time
+        TRAINING_DURATION.labels(task_id).observe(duration) # observe training duration in seconds
         
         status_data = {"status": "completed", "result": result, "completed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         save_task_status(task_id, status_data, ttl=3600) # Keep completed status for 1 hour
@@ -157,7 +154,7 @@ async def run_training(task_id:str , func , *args , chain_func=None):
     # set initial status
     status_data = {
         "status": "running",
-        "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "start_time":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         
     }
     
