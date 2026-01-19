@@ -106,7 +106,9 @@ async def training_worker(task_id:str,func , *args , chain_func=None):
     
     loop = asyncio.get_event_loop()
     start_time = time.time()
-    
+    client.hset("user", mapping={
+        
+    })
     try:
         result = await loop.run_in_executor(None, func, *args)
         
