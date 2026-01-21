@@ -70,9 +70,9 @@ async def train_parent_model(): # making async to run in background
     }
     
 @router.post("/train-child")
-async def train_child_model(request:Request): # making async to run in background 
-    data = await request.json()
-    ticker =  data.get("ticker","").strip().upper()
+async def train_child_model(ticker:str): # making async to run in background 
+    
+    ticker =  ticker.upper()
     
     if not ticker:
         raise HTTPException(status_code=400, detail="Ticker is required")
@@ -126,4 +126,63 @@ async def train_child_model(request:Request): # making async to run in backgroun
         "task_id":task_id,
         "message":"Child training started"
     }
+      
+      
+# routing fucntions for prediction endpoints
+
+@router.post("/predict-child")
+async def predict_parent_model(ticker:str):
+    """Child model predictions endpoint """
+    
+    ticker = ticker.strip().upper()
+    
+    if not ticker:
+        raise HTTPException(status_code=400, detail="Ticker is required")
+    
+    task_id = ticker.lower()
+    PREDICTION_COUNTER.labels(type="child").inc()
+    
+    start_time = time.time()
+    
+    try:
+        def get_preds():
+            return get_or_set_cache(f"predict_child_{ticker.lower()}", lambda: predict_child(ticker), expire=86400)
+        
+        preds = await run_blocking_fn(get_preds)
+        PREDICTION_LATENCY.labels(type="child").observe(time.time() - start_time)
+        return {"result": preds}
+        
+    except FileNotFoundError  as e:
+        if "missing" in str(e) or "not found" in str(e):
+            logger.info(f"Model missing for {ticker}, triggering auto-training.")
+            
+            # Check if Parent Model exists
+            if not check_model_exists("parent", "parent"):
+                
+                logger.warning("Parent model missing. Triggering parent training first.")
+                parent_status = get_task_status_redis("parent_training")
+                
+                if not parent_status or parent_status.get("status") != "completed":
+                    await run_training("parent_training", train_parent)
+                    
+                    return {"status": "training", "detail": "Parent model missing. Training parent first.", "task_id": "parent_training"}
+
+            status = get_task_status_redis(task_id)
+            
+            if status and status.get("status") == "running":
+                 
+                 return {"status": "training", "detail": "Training in progress. Please retry later.", "task_id": task_id}
+            
+            def chain_predict():
+                # Chain prediction and caching after training
+                logger.info(f"Auto-predicting for {ticker} after auto-training...")
+                get_or_set_cache(f"predict_child_{ticker.lower()}", lambda: predict_child(ticker), expire=86400)
+
+            await run_training(task_id, train_child, ticker, chain_fn=chain_predict)
+            
+            return {"status": "training", "detail": f"Model for {ticker} missing. Training started (with auto-prediction).", "task_id": task_id}
+            
+        raise HTTPException(500, str(e)) # raise 500 error for other exceptions
+    except Exception as e:
+        raise HTTPException(500, str(e)) # raise 500 error for other exceptions   
         

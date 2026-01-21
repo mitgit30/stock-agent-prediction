@@ -151,7 +151,7 @@ def predict_child(ticker: str):
                 logger.warning(f"Failed to fetch from Feast: {e}")
         preds = predict_one_step_and_week(model, df, scaler, ticker)
 
-        # Prepare features (history)
+        # Prepare features for child model
         # Get last 30 days of history
         history_df = df.tail(30).copy()
         # Normalize columns keys
@@ -159,12 +159,12 @@ def predict_child(ticker: str):
         
         if "date" in history_df.columns:
              # Ensure date is string for JSON serialization if it's timestamp
-             # yfinance dates are usually Timestamps.
+             # yfinance dates timestamps so we need to convert .
              if not isinstance(history_df["date"].iloc[0], str):
                   history_df["date"] = history_df["date"].astype(str)
              preds["history"] = history_df[["date", "close"]].to_dict(orient="records")
         else:
-             # If date is index
+            
              hist_recs = []
              for idx, row in history_df.iterrows():
                  hist_recs.append({"date": str(idx.date()), "close": row["close"]})

@@ -34,7 +34,7 @@ def refresh_metrics():
 
 # redis function for get or set cache 
 
-def get_or_set_cache(key:str , compute_func , expiry:int=86400): # caching and storing the result for 24 hours
+def get_or_set_cache(key:str , compute_func , expire:int=86400): # caching and storing the result for 24 hours
     """
     helper function for redis , if key is present in redis it will return the value from redis
     else it will compute the value and store it in redis
@@ -54,7 +54,7 @@ def get_or_set_cache(key:str , compute_func , expiry:int=86400): # caching and s
         result = compute_func()
             
         if client:
-            client.set(key,json.dumps(result) , ex=expiry)
+            client.set(key,json.dumps(result) , ex=expire)
             CACHE_MISS.labels(key).inc() # increment cache miss counter
             
         return result , False
