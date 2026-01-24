@@ -13,6 +13,8 @@ from src.pipelines.inference_pipeline import predict_child , predict_parent
 from src.exception import PipelineError
 from src.config import Config
 from logger.logger import get_logger
+from fastapi import Depends
+from backend.simple_rate_limit import simple_rate_limiter
 
 logger = get_logger()
 
@@ -43,7 +45,7 @@ def root():
 
 # functions for all training endpoints
 @router.post("/train-parent")
-async def train_parent_model(): # making async to run in background  
+async def train_parent_model(_:None=Depends(simple_rate_limiter(limit=5,window_sec=3600))): # making async to run in background and apply rate limit
     task_id = "parent_training" # task id for parent training
     
     # Check if parent model is already exist in local system
@@ -70,7 +72,7 @@ async def train_parent_model(): # making async to run in background
     }
     
 @router.post("/train-child")
-async def train_child_model(ticker:str): # making async to run in background 
+async def train_child_model(ticker:str,_:None=Depends(simple_rate_limiter(limit=5,window_sec=3600))): # making async to run in background 
     
     ticker =  ticker.upper()
     
@@ -131,7 +133,7 @@ async def train_child_model(ticker:str): # making async to run in background
 # routing fucntions for prediction endpoints
 
 @router.post("/predict-child")
-async def predict_parent_model(ticker:str):
+async def predict_parent_model(ticker:str, _:None=Depends(simple_rate_limiter(limit=30,window_sec=3600))): # allowing only 30 requests per hour
     """Child model predictions endpoint """
     
     ticker = ticker.strip().upper()

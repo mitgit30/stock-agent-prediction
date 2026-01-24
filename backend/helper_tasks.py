@@ -13,7 +13,7 @@ from backend.redis_server.redis_client import client
 from backend.metrics import (
     REDIS_KEYS , REDIS_STATUS , TRAINING_DURATION , TRAINING_STATUS,
     CACHE_HIT , CACHE_MISS , executor,
-    PREDICTION_COUNTER , PREDICTION_LATENCY , TRAINING_MSE ,SYSTEM_CPU ,SYSTEM_DISK ,SYSTEM_RAM
+
 )
 from logger.logger import get_logger
 
@@ -21,9 +21,9 @@ logger = get_logger()
 # refresh metrics function
 
 def refresh_metrics():
-    SYSTEM_CPU.set(psutil.cpu_percent())    
-    SYSTEM_RAM.set(psutil.virtual_memory().percent)
-    SYSTEM_DISK.set(psutil.disk_usage('/').percent)
+    # SYSTEM_CPU.set(psutil.cpu_percent())    
+    # SYSTEM_RAM.set(psutil.virtual_memory().percent)
+    # SYSTEM_DISK.set(psutil.disk_usage('/').percent)
     
     if client:
         try:
@@ -69,7 +69,7 @@ def get_or_set_cache(key:str , compute_func , expire:int=86400): # caching and s
 def get_task_key(task_id: str) -> str:
     return f"task_status:{task_id.lower()}"
 
-def save_task_status(task_id:str,status_data:Dict[str , Any],ttl:int=3600):# save task status in redis with ttl of 1 hour
+def save_task_status(task_id:str, status_data:Dict[str , Any],ttl:int=3600):# save task status in redis with ttl of 1 hour
     
     """
     save task status in redis with ttl of 1 hour

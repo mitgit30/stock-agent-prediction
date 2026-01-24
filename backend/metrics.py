@@ -6,9 +6,9 @@ from concurrent.futures import ThreadPoolExecutor # for multithreading the
 registry = CollectorRegistry()
 executor = ThreadPoolExecutor(max_workers=4)
 
-SYSTEM_CPU = Gauge("system_cpu_usage", "CPU percent", registry=registry)
-SYSTEM_RAM = Gauge("system_ram_used", "RAM MB", registry=registry)
-SYSTEM_DISK = Gauge("system_disk_used", "Disk Used MB", registry=registry)
+# SYSTEM_CPU = Gauge("system_cpu_usage", "CPU percent", registry=registry)  ## used prebuilt node exporter for accurate system metrics via docker container
+# SYSTEM_RAM = Gauge("system_ram_used", "RAM MB", registry=registry)
+# SYSTEM_DISK = Gauge("system_disk_used", "Disk Used MB", registry=registry)
 REDIS_STATUS = Gauge("redis_up", "Redis up=1/down=0", registry=registry)
 REDIS_KEYS = Gauge("redis_keys_total", "Number of keys in Redis", registry=registry)
 TRAINING_STATUS = Gauge("training_status", "0=idle 1=running 2=completed", ["task_id"], registry=registry)
