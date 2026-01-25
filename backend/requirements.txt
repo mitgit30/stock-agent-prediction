@@ -1,8 +1,7 @@
-pandas 
+pandas
 numpy
 scikit-learn
 matplotlib
-torch
 yfinance
 mlflow
 fastapi
@@ -13,13 +12,19 @@ redis
 prometheus-fastapi-instrumentator
 dagshub
 psutil
-feast
+
+feast==0.39.1
+
 langgraph
 langchain
 langchain-ollama
 langchain-community
+langchain-google-genai
+
 qdrant-client>=1.7.0
 dnspython
 requests
-langchain-google-genai
 plotly
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.2

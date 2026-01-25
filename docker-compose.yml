@@ -1,6 +1,29 @@
 version: "3.9"
 
 services:
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: backend/DockerFile
+    container_name: fastapi
+
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - monitoring
+    
+    volumes:
+      - .:/app
+      - ./outputs:/app/outputs
+      - ./feature_store:/app/feature_store
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+
+  
   redis:
     image: redis/redis-stack:latest
     container_name: redis
@@ -46,13 +69,14 @@ services:
     image: grafana/promtail:latest
     container_name: promtail
     volumes:
-      - ./logs:/var/log/stock-agent
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./promtail-config.yml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
     networks:
       - monitoring
     depends_on:
       - loki
+
 
   node-exporter:
     image: prom/node-exporter
