@@ -14,7 +14,7 @@ class AgentState(TypedDict):
     company_news: Dict[str, Any]
     
         # Analysis results
-    earnings_analysis: str
+    earnings_analysis: str 
     fomc_analysis: str
     insider_analysis: str
     analyst_analysis: str
