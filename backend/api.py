@@ -1,6 +1,6 @@
-from fastapi import APIRouter , Request , Response , HTTPException
+from fastapi import APIRouter , Request , Response , HTTPException , Query
 import os
-from typing import Dict , Optional
+from typing import Dict , Optional ,Any
 import datetime
 import time
 
@@ -16,6 +16,8 @@ from logger.logger import get_logger
 from fastapi import Depends
 from backend.simple_rate_limit import simple_rate_limiter
 
+from src.langgraph_agents.agent_tools import get_company_news , get_earnings_calendar , get_fomc_calendar , get_generated_predictions , get_insider_transactions
+from src.langgraph_agents.state import AgentState
 logger = get_logger()
 
 router = APIRouter()
@@ -187,4 +189,45 @@ async def predict_parent_model(ticker:str, _:None=Depends(simple_rate_limiter(li
         raise HTTPException(500, str(e)) # raise 500 error for other exceptions
     except Exception as e:
         raise HTTPException(500, str(e)) # raise 500 error for other exceptions   
-        
+    
+def run_agent(ticker:str) ->AgentState:
+        # Initial empty state
+    state: AgentState = {
+        "ticker": ticker,
+        "lstm_forcast": {},
+        "earnings_data": {},
+        "fomc_data": [],
+        "insider_transactions": [],
+        "analyst_consensus": {},
+        "company_news": {},
+
+        "earnings_analysis": "",
+        "fomc_analysis": "",
+        "insider_analysis": "",
+        "analyst_analysis": "",
+        "news_sentiment": "",
+
+        "recommendation": "",
+        "confidence_score": 0.0,
+        "risk_factors": [],
+        "supporting_evidence": [],
+        "references": [],
+        "next_steps": [],
+    }
+
+    # Sequential execution (like graph edges)
+    state = get_generated_predictions(state)
+    state = get_earnings_calendar(state)
+    state = get_fomc_calendar(state)
+    state = get_insider_transactions(state)
+    state = get_company_news(state)
+
+    return state
+
+@router.post("/analyze")
+def analyze_stock(ticker: str = Query(..., description="Stock ticker symbol")) -> Dict[str, Any]:
+    """
+    Main endpoint to test all agent nodes.
+    """
+    state = run_agent(ticker.upper())
+    return state

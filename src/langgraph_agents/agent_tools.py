@@ -5,8 +5,13 @@ import os
 import requests
 from src.langgraph_agents.state import AgentState
 from datetime import datetime, timedelta
-import certifi
 from backend.redis_server.redis_client import client
+from datetime import datetime
+import json
+from datetime import datetime, timedelta
+import requests
+from typing import Dict
+
 # Load environment variables
 load_dotenv()
 
@@ -38,7 +43,7 @@ def get_earnings_calendar(state: AgentState) -> AgentState:
     try:
         
         url = f"{Finnhub_Url}/calendar/earnings?symbol={ticker}&token={Finnhub_key}"
-        response = requests.get(url,verify=certifi.where())
+        response = requests.get(url,verify=False)
         response.raise_for_status()
         data = response.json()
         
@@ -50,13 +55,9 @@ def get_earnings_calendar(state: AgentState) -> AgentState:
         return state
 
 
-from datetime import datetime
-import json
-from typing import Dict
 
 def get_fomc_calendar(state: Dict) -> Dict:
     """
-    FOMC macro risk node.
     Checks if an FOMC meeting is within the next N days.
     The dates are fixed for particular year.
     """
@@ -100,12 +101,11 @@ def get_fomc_calendar(state: Dict) -> Dict:
 
 
 
-from datetime import datetime, timedelta
-import requests
+
 
 def get_insider_transactions(state: AgentState) -> AgentState:
     """
-    Insider transactions node.
+    
     Fetches last 90 days data and converts it into a trend summary
     usable by the LLM.
     """
@@ -121,7 +121,7 @@ def get_insider_transactions(state: AgentState) -> AgentState:
             f"?symbol={ticker}&from={from_date}&to={to_date}&token={Finnhub_key}"
         )
 
-        response = requests.get(url, timeout=10,verify=certifi.where())
+        response = requests.get(url, timeout=10,verify=False)
         response.raise_for_status()
         raw = response.json().get("data", [])
 
@@ -176,7 +176,7 @@ def get_company_news(state: AgentState, days: int = 7) -> AgentState:
         to_date = datetime.now().strftime("%Y-%m-%d")
         
         url = f"{Finnhub_Url}/company-news?symbol={ticker}&from={from_date}&to={to_date}&token={Finnhub_key}"
-        response = requests.get(url,verify=certifi.where())
+        response = requests.get(url,verify=False)
         response.raise_for_status()
         data = response.json()
         
