@@ -6,12 +6,30 @@ import requests
 from src.langgraph_agents.state import AgentState
 from datetime import datetime, timedelta
 import certifi
+from backend.redis_server.redis_client import client
 # Load environment variables
 load_dotenv()
 
 # Setup the finnhub service
 Finnhub_key = os.getenv("FINNHUB_API_KEY")
 Finnhub_Url = "https://finnhub.io/api/v1"
+
+# def get the stock predictions from redis
+def get_generated_predictions(state:AgentState):
+    """ 
+    fetch data of predictions directly from redis if present
+    """
+    ticker = state["ticker"]
+    try:
+        data = client.get(f"predict_child{ticker.lower()}")
+        if data:
+            state["lstm_forcast"] = json.loads(data)
+        else:
+            state["lstm_forcast"] = "No recent predictions found."
+        return state
+    except Exception as e:
+        state["lstm_forcast"] = {"error": str(e)}
+        return state    
 
 
 def get_earnings_calendar(state: AgentState) -> AgentState:
@@ -40,6 +58,7 @@ def get_fomc_calendar(state: Dict) -> Dict:
     """
     FOMC macro risk node.
     Checks if an FOMC meeting is within the next N days.
+    The dates are fixed for particular year.
     """
 
     try:
