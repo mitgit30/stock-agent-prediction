@@ -3,6 +3,8 @@ import os
 from typing import Dict , Optional ,Any
 import datetime
 import time
+import shutil
+from pathlib import Path
 
 from backend.metrics import PREDICTION_COUNTER , PREDICTION_LATENCY
 from backend.redis_server.redis_client import client
@@ -230,3 +232,30 @@ def analyze_stock(ticker: str = Query(..., description="Stock ticker symbol")) -
     """
     state = run_agent(ticker.upper())
     return state
+
+
+OUTPUTS_DIR = Path("/app/outputs")
+
+@router.post("/flush-outputs")
+def flush_outputs():
+    """
+    Deletes all subfolders inside outputs directory.
+    Used to remove stale model artifacts.
+    """
+
+    if not OUTPUTS_DIR.exists():
+        return {
+            "status": "outputs folder not found"
+            }
+
+    deleted = []
+
+    for item in OUTPUTS_DIR.iterdir():
+        if item.is_dir():
+            shutil.rmtree(item)
+            deleted.append(item.name)
+
+    return {
+        "status": "success",
+        "deleted_folders": deleted
+    }
