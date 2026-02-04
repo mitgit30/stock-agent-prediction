@@ -11,7 +11,7 @@ import json
 from datetime import datetime, timedelta
 import requests
 from typing import Dict
-
+from collections import Counter
 # Load environment variables
 load_dotenv()
 
@@ -46,7 +46,7 @@ def get_earnings_calendar(state: AgentState) -> AgentState:
         response = requests.get(url,verify=False)
         response.raise_for_status()
         data = response.json()
-        
+         
         state["earnings_data"] = data
         
         return state
@@ -124,38 +124,62 @@ def get_insider_transactions(state: AgentState) -> AgentState:
         response = requests.get(url, timeout=10,verify=False)
         response.raise_for_status()
         raw = response.json().get("data", [])
+        
+        buy_codes = {"P"}      # Real open market buys
+        sell_codes = {"S"} 
 
         total_buy = 0
         total_sell = 0
+        buy_count = 0
+        sell_count = 0
+        
+        code_counter = Counter()
 
         for tx in raw:
             code = tx.get("transactionCode")
             change = tx.get("change", 0)
+            code_counter[code] += 1
 
-            if code == "P":  # Purchase
+            if code in buy_codes:
                 total_buy += change
-            elif code == "S":  # Sale
-                total_sell += abs(change)
+                buy_count += 1
+            elif code in sell_codes:
+                total_sell += change
+                sell_count += 1
+                
+        dominant_code = code_counter.most_common(1)[0][0] if code_counter else None # get the most common code
 
         # Create reasoning summary
-        if total_buy > total_sell:
-            summary = (
-                f"Recent insider activity for {ticker} shows net buying "
-                f"({total_buy} shares bought vs {total_sell} sold). "
-                "This indicates positive internal confidence."
+        if dominant_code in {"F", "A", "G"}:
+            interpretation = ( "Majority of insider transactions are compensation-related "
+                "(RSU grants, tax withholding, or gifts) and do not reflect "
+                "market sentiment."
+            )
+        elif total_buy > total_sell:
+            interpretation = ("Net insider buying observed through open market purchases, "
+                "indicating positive internal confidence."
             )
         elif total_sell > total_buy:
-            summary = (
-                f"Recent insider activity for {ticker} shows net selling "
-                f"({total_sell} shares sold vs {total_buy} bought). "
-                "This may indicate caution from executives.")
-        else:
-            summary = (
-                f"No significant insider buying or selling trend detected for {ticker}."
+            interpretation = (
+                "Net insider selling observed through open market sales, "
+                "which may indicate cautious outlook from executives."
             )
+        else:
+            interpretation = "No significant sentiment-driven insider activity detected."
 
+        summary = {
+            "period_days": 90,
+            "total_buy_shares": total_buy,
+            "total_sell_shares": total_sell,
+            "buy_tx_count": buy_count,
+            "sell_tx_count": sell_count,
+            "dominant_transaction_code": dominant_code,
+            "code_distribution": dict(code_counter),
+            "interpretation": interpretation,
+            "latest_transaction_date": raw[0].get("transactionDate") if raw else None,
+        }
         # Store both raw + summary in state
-        state["insider_transactions"] = raw
+        state["insider_transactions"] = raw[:20]
         state["insider_summary"] = summary
 
         return state
