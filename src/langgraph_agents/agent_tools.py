@@ -192,20 +192,97 @@ def get_insider_transactions(state: AgentState) -> AgentState:
 
 
 def get_company_news(state: AgentState, days: int = 7) -> AgentState:
-    """Get company news for a specific ticker"""
+    """
+    Fetch company news and convert large article list into
+    a compact market narrative summary for the LLM.
+    """
+
     ticker = state["ticker"]
+
     try:
-        # Get news from last N days
         from_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
         to_date = datetime.now().strftime("%Y-%m-%d")
-        
-        url = f"{Finnhub_Url}/company-news?symbol={ticker}&from={from_date}&to={to_date}&token={Finnhub_key}"
-        response = requests.get(url,verify=False)
+
+        url = (
+            f"{Finnhub_Url}/company-news"
+            f"?symbol={ticker}&from={from_date}&to={to_date}&token={Finnhub_key}"
+        )
+
+        response = requests.get(url, timeout=10, verify=False)
         response.raise_for_status()
-        data = response.json()
-        
-        state["company_news"] = {"articles": data, "period": f"{from_date} to {to_date}"}
+        articles = response.json()
+
+       
+        themes = Counter()
+        positive, negative, neutral = 0, 0, 0
+        important_headlines = []
+
+        for art in articles[:50]:  # limit processing
+            headline = art.get("headline", "").lower()
+            summary = art.get("summary", "").lower()
+            text = headline + " " + summary
+
+            # Theme classification
+            if any(k in text for k in ["earnings", "revenue", "guidance"]):
+                themes["Financial"] += 1
+            elif any(k in text for k in ["lawsuit", "fine", "investigation", "fraud"]):
+                themes["Legal Risk"] += 1
+            elif any(k in text for k in ["partnership", "collaboration", "alliance"]):
+                themes["Partnerships"] += 1
+            elif any(k in text for k in ["acquisition", "acquire"]):
+                themes["Expansion"] += 1
+            elif any(k in text for k in ["ai", "azure", "cloud", "product launch"]):
+                themes["Innovation/AI/Cloud"] += 1
+            elif any(k in text for k in ["layoff", "cut jobs"]):
+                themes["Cost Stress"] += 1
+            else:
+                themes["General"] += 1
+
+            # Sentiment hint
+            if any(k in text for k in ["growth", "strong", "record", "boost", "top", "lead"]):
+                positive += 1
+            elif any(k in text for k in ["drop", "risk", "fall", "decline", "concern"]):
+                negative += 1
+            else:
+                neutral += 1
+
+            # store and save few meaningful headlines
+            if len(important_headlines) < 5:
+                important_headlines.append(art.get("headline"))
+
+        # ----------- Overall Sentiment -----------
+        if positive > negative:
+            overall_sentiment = "Positive"
+        elif negative > positive:
+            overall_sentiment = "Negative"
+        else:
+            overall_sentiment = "Neutral"
+
+    
+        dominant_theme = themes.most_common(1)[0][0] if themes else "General"
+
+        narrative = (
+            f"Recent news flow around {ticker} is dominated by '{dominant_theme}' "
+            f"with overall {overall_sentiment} sentiment. "
+            f"Coverage highlights themes such as {', '.join(themes.keys())}."
+        )
+
+        state["company_news"] = {
+            "period": f"{from_date} to {to_date}",
+            "articles_considered": len(articles),
+            "themes_detected": dict(themes),
+            "top_headlines": important_headlines,
+            "sentiment_counts": {
+                "positive": positive,
+                "negative": negative,
+                "neutral": neutral,
+            },
+            "overall_sentiment": overall_sentiment,
+            "narrative": narrative,
+        }
+
         return state
+
     except Exception as e:
         state["company_news"] = {"error": str(e)}
         return state

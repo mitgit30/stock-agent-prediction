@@ -215,7 +215,6 @@ def run_agent(ticker:str) ->AgentState:
         "next_steps": [],
     }
 
-    # Sequential execution (like graph edges)
     state = get_generated_predictions(state)
     state = get_earnings_calendar(state)
     state = get_fomc_calendar(state)
