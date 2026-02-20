@@ -99,6 +99,35 @@ def get_task_status_redis(task_id:str)->Optional[Dict[str , Any]]:
         logger.error(f"Redis get task status error for {task_id}: {e}")
     return None
 
+def get_agent_state_key(ticker: str) -> str:
+    return f"agent_state:{ticker.lower()}"
+
+def save_agent_state(ticker: str, state_data: Dict[str, Any], ttl: int = 86400) -> None:
+    """
+    Save latest agent state output in Redis.
+    """
+    try:
+        if client:
+            key = get_agent_state_key(ticker)
+            client.set(key, json.dumps(state_data), ex=ttl)
+    except Exception as e:
+        logger.error(f"Redis save agent state error for {ticker}: {e}")
+
+def get_agent_state_redis(ticker: str) -> Optional[Dict[str, Any]]:
+    """
+    Fetch latest agent state output from Redis.
+    """
+    try:
+        if client:
+            key = get_agent_state_key(ticker)
+            value = client.get(key)
+            if value:
+                return json.loads(value)
+            return None
+    except Exception as e:
+        logger.error(f"Redis get agent state error for {ticker}: {e}")
+    return None
+
 # defning training worker for main run training fucntion that will be carried out in background with the help of asyncio
 
 async def training_worker(task_id:str,func , *args , chain_func=None):

@@ -55,7 +55,7 @@ def load_local_model(ticker: str, model_type: str):
             scaler_path = os.path.join(base_dir, f"{ticker}_child_scaler.pkl")
 
         if not os.path.exists(pt_path):
-            raise FileNotFoundError(f"Missing PyTorch file for {ticker}: {pt_path}")
+            raise FileNotFoundError(f"Missing model file for {ticker}: {pt_path}")
         if not os.path.exists(scaler_path):
             raise FileNotFoundError(f"Missing scaler file for {ticker}: {scaler_path}")
 

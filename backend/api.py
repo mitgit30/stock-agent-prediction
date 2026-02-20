@@ -8,7 +8,7 @@ from pathlib import Path
 
 from backend.metrics import PREDICTION_COUNTER , PREDICTION_LATENCY
 from backend.redis_server.redis_client import client
-from backend.helper_tasks import get_or_set_cache , get_task_status_redis , save_task_status , run_training , run_blocking_fn , refresh_metrics
+from backend.helper_tasks import get_or_set_cache , get_task_status_redis , save_task_status , run_training , run_blocking_fn , refresh_metrics , save_agent_state , get_agent_state_redis
 
 from src.pipelines.training_pipeline import train_parent , train_child
 from src.pipelines.inference_pipeline import predict_child , predict_parent
@@ -223,6 +223,8 @@ def run_agent(ticker:str) ->AgentState:
     state = get_insider_transactions(state)
     state = get_company_news(state)
 
+    save_agent_state(ticker, state, ttl=86400)
+
     return state
 
 @router.post("/analyze")
@@ -232,6 +234,16 @@ def analyze_stock(ticker: str = Query(..., description="Stock ticker symbol")) -
     """
     state = run_agent(ticker.upper())
     return state
+
+@router.get("/analyze-cache")
+def get_cached_analyze_state(ticker: str = Query(..., description="Stock ticker symbol")) -> Dict[str, Any]:
+    """
+    Get last saved agent state for a ticker from Redis.
+    """
+    cached_state = get_agent_state_redis(ticker.upper())
+    if not cached_state:
+        raise HTTPException(status_code=404, detail=f"No cached agent state found for {ticker.upper()}")
+    return {"ticker": ticker.upper(), "state": cached_state} 
 
 
 OUTPUTS_DIR = Path("/app/outputs")
@@ -254,6 +266,7 @@ def flush_outputs():
         if item.is_dir():
             shutil.rmtree(item)
             deleted.append(item.name)
+    logger.info(f"Deleted all subfolders in {OUTPUTS_DIR} : {deleted}")
 
     return {
         "status": "success",
