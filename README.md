@@ -76,27 +76,59 @@ Traditional stock prediction tools either focus purely on price data or purely o
 ```
 
 │
-├── backend/                        # Backend service layer
-│   ├── redis_server/               # Redis service module
-│   ├── feature_store/              # Feast feature store definitions
-│   ├── feature_store_sample/       # Sample feature store configs
-│   ├── logger/                     # Logging configuration
-│   ├── logs/                       # Application log output
-│   ├── outputs/                    # Inference output storage
-│   └── prometheus/                 # Prometheus config & rules
+├── backend/                        # FastAPI backend service
+│   ├── redis_server/
+│   │   └── redis_client.py
+│   ├── api.py
+│   ├── helper_tasks.py
+│   ├── main.py
+│   ├── metrics.py
+│   ├── requirements.txt
+│   ├── simple_rate_limit.py
+│   └── DockerFile
+├── feature_store/                  # Feast feature store
+│   └── data/
+├── feature_store_sample/           # Sample Feast setup
+│   └── data/
+├── logger/
+│   └── logger.py
+├── logs/
+├── outputs/
+├── prometheus/
+│   └── prometheus.yml
 │
-├── src/                            # Core ML & agent source code
-│   ├── data/                       # Raw & processed data
-│   ├── langgraph_agents/           # Agentic AI layer (LangGraph)
-│   ├── model/                      # Parent & child LSTM models
-│   ├── pipelines/                  # Training & inference pipelines
-│   │   ├── __init__.py
-│   │   ├── config.py               # Pipeline configuration
-│   │   ├── exception.py            # Custom exception handling
-│   │   ├── inference.py            # Inference pipeline
-│   │   └── utils.py                # Shared utilities
-│   │
-└── tests/                          # Unit & integration tests
+├── src/                            # Core ML + agent code
+│   ├── data/
+│   │   ├── fomc_dates_2026.json
+│   │   ├── ingestion.py
+│   │   └── preparation.py
+│   ├── langgraph_agents/
+│   │   ├── agent_nodes.py
+│   │   ├── agent_tools.py
+│   │   └── state.py
+│   ├── model/
+│   │   ├── definition.py
+│   │   ├── evaluation.py
+│   │   ├── saving.py
+│   │   └── training.py
+│   ├── pipelines/
+│   │   ├── inference_pipeline.py
+│   │   └── training_pipeline.py
+│   ├── __init__.py
+│   ├── config.py
+│   ├── exception.py
+│   ├── inference.py
+│   └── utils.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_feast.py
+│   ├── test_nodes.py
+│   └── test_ohlcv.py
+├── docker-compose.yml
+├── main.py
+├── promtail-config.yml
+├── pyproject.toml
+└── README.md
 ```
 
 ---
