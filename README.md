@@ -9,7 +9,7 @@
 
 Traditional stock prediction tools either focus purely on price data or purely on news sentiment — this platform does both. A hierarchical ML system learns market-wide temporal patterns and adapts them to individual tickers, while an autonomous AI agent enriches predictions with real-world financial context to generate actionable buy/sell insights.
 
-**Final Output:** Model prediction + Agent-generated equity research report → Buy / Hold / Sell recommendation
+**Final Output:** Model prediction + Agent-generated equity research report → Buy / Sell recommendation
 
 ---
 
@@ -18,7 +18,7 @@ Traditional stock prediction tools either focus purely on price data or purely o
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      DATA LAYER                             │
-│   S&P 500 OHLCV  │  Individual Tickers  │  Financial News   │
+│   S&P 500 OHLCV            │       Individual Tickers       │
 └────────────────────────────┬────────────────────────────────┘
                              │
 ┌────────────────────────────▼────────────────────────────────┐
@@ -76,61 +76,55 @@ Traditional stock prediction tools either focus purely on price data or purely o
 ```
 equity-research-agent/
 │
-├── data/
-│   ├── raw/                        # Raw OHLCV data
-│   ├── processed/                  # Cleaned & transformed data
-│   └── features/                   # Feast feature definitions
+├── backend/                        # Backend service layer
+│   ├── redis_server/               # Redis service module
+│   ├── feature_store/              # Feast feature store definitions
+│   ├── feature_store_sample/       # Sample feature store configs
+│   ├── logger/                     # Logging configuration
+│   ├── logs/                       # Application log output
+│   ├── outputs/                    # Inference output storage
+│   └── prometheus/                 # Prometheus config & rules
 │
-├── src/
-│   ├── pipelines/
-│   │   ├── training_pipeline.py    # End-to-end training pipeline
-│   │   └── inference_pipeline.py  # Inference pipeline
+├── src/                            # Core ML & agent source code
+│   ├── data/                       # Raw & processed data
+│   ├── langgraph_agents/           # Agentic AI layer (LangGraph)
+│   ├── model/                      # Parent & child LSTM models
+│   ├── pipelines/                  # Training & inference pipelines
+│   │   ├── __init__.py
+│   │   ├── config.py               # Pipeline configuration
+│   │   ├── exception.py            # Custom exception handling
+│   │   ├── inference.py            # Inference pipeline
+│   │   └── utils.py                # Shared utilities
 │   │
-│   ├── models/
-│   │   ├── parent_model.py         # Parent LSTM model (S&P 500)
-│   │   └── child_model.py          # Child models (per ticker)
-│   │
-│   ├── feature_store/
-│   │   ├── feature_definitions.py  # Feast feature views
-│   │   └── feature_retrieval.py   # Feature retrieval logic
-│   │
-│   ├── agents/
-│   │   ├── graph.py                # LangGraph agent definition
-│   │   ├── tools/
-│   │   │   ├── news_fetcher.py     # Financial news tool
-│   │   │   └── fomc_calendar.py   # FOMC data tool
-│   │   └── rag/
-│   │       ├── ingestion.py        # ChromaDB ingestion pipeline
-│   │       └── retriever.py        # RAG retrieval logic
-│   │
-│   ├── backend/
-│   │   ├── main.py                 # FastAPI app entry point
-│   │   ├── routers/                # API route definitions
-│   │   ├── middleware/             # Rate limiting, auth
-│   │   └── schemas/                # Pydantic request/response models
-│   │
-│   └── utils/
-│       ├── logger.py
-│       └── config.py
+└── tests/                          # Unit & integration tests
+```
+
+---
+
+## 🤖 ML System — Transfer Learning
+
+### Parent Model
+- Trained on **S&P 500 OHLCV** data
+- LSTM architecture capturing broad market temporal patterns
+- Acts as the base model for all child models
+
+### Child Models
+- Fine-tuned per individual ticker (TSLA, META, GOOG, MSFT, etc.)
+- **Early LSTM layers are frozen** — shared temporal patterns preserved
+- **Later layers are fine-tuned** — ticker-specific behavior learned
+- Enables domain adaptation with less data and compute per ticker
+
+```
+Parent Model (S&P 500)
 │
-├── monitoring/
-│   ├── prometheus.yml
-│   ├── grafana/
-│   │   └── dashboards/
-│   └── loki/
-│       └── promtail-config.yml
+├── Frozen Layers    ← Shared market temporal patterns
 │
-├── docker/
-│   ├── docker-compose.yml
-│   ├── Dockerfile.backend
-│   └── Dockerfile.inference
-│
-├── experiments/                    # DagsHub experiment tracking
-├── notebooks/                      # EDA and prototyping
-├── tests/
-├── .env.example
-├── pyproject.toml
-└── README.md
+└── Fine-tuned Layers ← Ticker-specific adaptation
+        │
+        ├── Child Model (TSLA)
+        ├── Child Model (META)
+        ├── Child Model (GOOG)
+        └── Child Model (MSFT)
 ```
 
 ---
