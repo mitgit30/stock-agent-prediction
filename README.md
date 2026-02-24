@@ -74,7 +74,7 @@ Traditional stock prediction tools either focus purely on price data or purely o
 ## 📁 Project Structure
 
 ```
-equity-research-agent/
+
 │
 ├── backend/                        # Backend service layer
 │   ├── redis_server/               # Redis service module
@@ -200,7 +200,7 @@ Built with **LangGraph** for stateful, multi-step agent execution.
     "summary": "...",
     "key_factors": ["..."],
     "risk_factors": ["..."],
-    "recommendation": "BUY / HOLD / SELL"
+    "recommendation": "BUY / SELL"
   }
 }
 ```
@@ -219,10 +219,11 @@ Built with **LangGraph** for stateful, multi-step agent execution.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/predict/{ticker}` | Get stock prediction for a ticker |
-| `GET` | `/report/{ticker}` | Get full agentic research report |
-| `POST` | `/train/{ticker}` | Trigger child model training |
-| `GET` | `/health` | Service health check |
+| `POST` | `/api/train-parent/` | Train the parent model on S&P 500 data on updated data |
+| `POST` | `/api/train-child/{ticker}` | Trigger child model training on specific ticker |
+| `POST` | `/api/predict-child/{ticker}` | Trigger prediction for a specific ticker |
+| `POST` | `/api/analyze/{ticker}` | Trigger the agentic mode on specific ticker |
+| `POST` | `/api/flush-outputs` | Flush all cached outputs |
 
 ---
 
@@ -258,7 +259,7 @@ services:
 
 ### Prerequisites
 - Docker & Docker Compose
-- Python 3.10+
+- Python 3.12+
 - UV (Python package manager)
 
 ### Installation

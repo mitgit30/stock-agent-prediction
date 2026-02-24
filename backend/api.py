@@ -53,7 +53,7 @@ async def train_parent_model(_:None=Depends(simple_rate_limiter(limit=5,window_s
     task_id = "parent_training" # task id for parent training
     
     # Check if parent model is already exist in local system
-    
+
     if check_model_exists("parent","parent"):
         return{
             "status":"completed",
