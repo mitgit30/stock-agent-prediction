@@ -298,29 +298,22 @@ services:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/equity-research-agent.git
-cd equity-research-agent
-
-# Copy environment variables
-cp .env.example .env
-
+git clone https://github.com/mitgit30/stock-agent-prediction.git
+cd stock-agent-prediction
+    
 # Install dependencies using UV
 uv sync
 
-# Start all Docker services
+# Ensure .env exists at repo root with required keys
+
+# Apply Feast definitions (from repo root)
+feast -c feature_store apply
+
+# Start full stack (FastAPI + Redis + monitoring)
 docker compose up -d
 
-# Initialize Feast feature store
-feast apply
-
-# Run training pipeline (parent model)
-python src/pipelines/training_pipeline.py --model parent
-
-# Run training pipeline (child model)
-python src/pipelines/training_pipeline.py --model child --ticker TSLA
-
-# Start FastAPI backend
-uvicorn src.backend.main:app --reload --port 8000
+# Or run only API locally (without Dockerized FastAPI)
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ---
