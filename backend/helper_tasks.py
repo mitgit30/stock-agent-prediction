@@ -194,4 +194,3 @@ async def run_training(task_id:str , func , *args , chain_func=None):
     # execute the background task
     asyncio.create_task(training_worker(task_id, func, *args, chain_func=chain_func))
     
-    
