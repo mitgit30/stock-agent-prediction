@@ -10,10 +10,6 @@ print("\n FOMC")
 state = get_fomc_calendar(state)
 print(state.get("fomc_summary"))
 
-print("\n Insider")
-state = get_insider_transactions(state)
-print(state.get("insider_summary"))
-
 print("\n News")
 state = get_company_news(state)
 print(len(state.get("company_news", {}).get("articles", [])), "articles")
