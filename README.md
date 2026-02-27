@@ -243,8 +243,10 @@ Built with **LangGraph** for stateful, multi-step agent execution.
 
 ### Key Features
 - **Redis caching** — prediction results cached with TTL to reduce redundant inference
+- **Agent state caching** — latest `/analyze` state is saved in Redis and can be fetched later
 - **Rate limiting** — critical prediction endpoints protected against excessive usage
 - **Structured pipelines** — training and inference are fully decoupled
+- **HTML research output** — analysis can be rendered as an HTML-style report endpoint
 - **Pydantic schemas** — strict request/response validation
 
 ### Key Endpoints
@@ -254,7 +256,9 @@ Built with **LangGraph** for stateful, multi-step agent execution.
 | `POST` | `/api/train-parent/` | Train the parent model on S&P 500 data on updated data |
 | `POST` | `/api/train-child/{ticker}` | Trigger child model training on specific ticker |
 | `POST` | `/api/predict-child/{ticker}` | Trigger prediction for a specific ticker |
-| `POST` | `/api/analyze/{ticker}` | Trigger the agentic mode on specific ticker |
+| `POST` | `/api/analyze?ticker=TSLA` | Run agent workflow and return structured JSON report |
+| `GET` | `/api/analyze-html?ticker=TSLA` | Render analysis as HTML-style report |
+| `GET` | `/api/analyze-cache?ticker=TSLA` | Fetch last saved analysis state from Redis |
 | `POST` | `/api/flush-outputs` | Flush all cached outputs |
 
 ---

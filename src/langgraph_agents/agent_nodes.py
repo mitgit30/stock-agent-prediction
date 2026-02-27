@@ -1,5 +1,6 @@
 import json
 import os
+import html
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
@@ -189,3 +190,146 @@ def run_agent_workflow(ticker: str) -> AgentState:
     state = get_company_news(state)
     state = generate_llm_report(state)
     return state
+
+
+def build_html_report(state: AgentState) -> str:
+    ticker = html.escape(str(state.get("ticker", "N/A")))
+    recommendation = html.escape(str(state.get("recommendation", "NEUTRAL")))
+    confidence = state.get("confidence_score", 0.0)
+    try:
+        confidence_pct = f"{float(confidence) * 100:.1f}%"
+    except Exception:
+        confidence_pct = "N/A"
+
+    news = state.get("company_news", {}) if isinstance(state.get("company_news"), dict) else {}
+    news_sentiment = html.escape(str(news.get("overall_sentiment", "Unknown")))
+    news_narrative = html.escape(str(news.get("narrative", "No narrative available.")))
+
+    fomc_summary = html.escape(str(state.get("fomc_summary", "No FOMC summary available.")))
+    supporting = state.get("supporting_evidence", []) or []
+    risks = state.get("risk_factors", []) or []
+    next_steps = state.get("next_steps", []) or []
+
+    forecast = state.get("lstm_forcast", {}) if isinstance(state.get("lstm_forcast"), dict) else {}
+    next_day = (
+        forecast.get("predictions", {})
+        .get("next_day", {})
+        if isinstance(forecast.get("predictions", {}), dict)
+        else {}
+    )
+
+    next_day_lines = []
+    for key in ["date", "open", "high", "low", "close", "volume"]:
+        if key in next_day:
+            next_day_lines.append(
+                f"<li><strong>{html.escape(key.title())}:</strong> {html.escape(str(next_day[key]))}</li>"
+            )
+    if not next_day_lines:
+        next_day_lines.append("<li>Prediction details unavailable.</li>")
+
+    def list_items(values: List[Any], fallback: str) -> str:
+        if not values:
+            return f"<li>{html.escape(fallback)}</li>"
+        return "".join([f"<li>{html.escape(str(v))}</li>" for v in values])
+
+    return f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{ticker} Equity Research Report</title>
+  <style>
+    :root {{
+      --bg: #f7f9fc;
+      --card: #ffffff;
+      --ink: #112138;
+      --muted: #52637a;
+      --accent: #1f6feb;
+      --good: #1a7f37;
+      --bad: #b42318;
+      --border: #d9e1ec;
+    }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(180deg, #eef3fb 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }}
+    .wrap {{ max-width: 1000px; margin: 0 auto; }}
+    .hero {{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 6px 20px rgba(17, 33, 56, 0.08);
+      margin-bottom: 16px;
+    }}
+    .grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }}
+    .card {{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 3px 12px rgba(17, 33, 56, 0.06);
+    }}
+    h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    h2 {{ margin: 0 0 10px; font-size: 18px; color: var(--accent); }}
+    p {{ margin: 8px 0; color: var(--muted); }}
+    ul {{ margin: 8px 0 0 20px; padding: 0; }}
+    .pill {{
+      display: inline-block;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.4px;
+      color: #fff;
+      background: {"var(--good)" if recommendation == "BUY" else "var(--bad)" if recommendation == "SELL" else "var(--accent)"};
+    }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>{ticker} Equity Research Report</h1>
+      <p><span class="pill">{recommendation}</span></p>
+      <p><strong>Confidence:</strong> {confidence_pct}</p>
+      <p><strong>News Sentiment:</strong> {news_sentiment}</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Model Forecast (Next Day)</h2>
+        <ul>{''.join(next_day_lines)}</ul>
+      </article>
+      <article class="card">
+        <h2>Macro Context (FOMC)</h2>
+        <p>{fomc_summary}</p>
+      </article>
+      <article class="card">
+        <h2>News Narrative</h2>
+        <p>{news_narrative}</p>
+      </article>
+      <article class="card">
+        <h2>Supporting Evidence</h2>
+        <ul>{list_items(supporting, "No supporting evidence generated.")}</ul>
+      </article>
+      <article class="card">
+        <h2>Risk Factors</h2>
+        <ul>{list_items(risks, "No explicit risks identified.")}</ul>
+      </article>
+      <article class="card">
+        <h2>Next Steps</h2>
+        <ul>{list_items(next_steps, "No next steps generated.")}</ul>
+      </article>
+    </section>
+  </div>
+</body>
+</html>
+"""
