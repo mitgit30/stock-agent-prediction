@@ -1,16 +1,27 @@
-from typing import TypedDict,Dict , Any , Optional , Annotated , List 
+from typing import Any, Dict, List, TypedDict
 
 
-# define the state of the agent
+class AgentState(TypedDict, total=False):
+    """Shared state across LangGraph nodes."""
 
-class AgentState(TypedDict):
-    """Shared state across all nodes"""
-    ticker:str
-    lstm_forcast:Dict[str,Any]
-    earnings_data: Dict[str,Any]
-    fomc_data: List[Dict]
+    # Inputs and tool outputs
+    ticker: str
+    lstm_forcast: Dict[str, Any]
+    earnings_data: Dict[str, Any]
+    fomc_data: Dict[str, Any]
+    fomc_summary: str
     company_news: Dict[str, Any]
-    
-        # Analysis results
-    earnings_analysis: str 
+
+    # Intermediate node outputs
+    performance_analysis: Dict[str, Any]
+    market_sentiment: Dict[str, Any]
+    earnings_analysis: str
     fomc_analysis: str
+
+    # Final decision/report outputs
+    final_report: str
+    recommendation: str
+    confidence_score: float
+    supporting_evidence: List[str]
+    risk_factors: List[str]
+    next_steps: List[str]

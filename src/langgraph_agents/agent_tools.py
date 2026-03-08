@@ -163,8 +163,8 @@ def get_company_news(state: AgentState, days: int = 7) -> AgentState:
             # store and save few meaningful headlines
             if len(important_headlines) < 5:
                 important_headlines.append(art.get("headline"))
-
-        # ----------- Overall Sentiment -----------
+                
+                
         if positive > negative:
             overall_sentiment = "Positive"
         elif negative > positive:
@@ -200,3 +200,5 @@ def get_company_news(state: AgentState, days: int = 7) -> AgentState:
     except Exception as e:
         state["company_news"] = {"error": str(e)}
         return state
+
+    

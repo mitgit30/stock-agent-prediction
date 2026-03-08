@@ -16,10 +16,10 @@ from src.exception import PipelineError
 from src.config import Config
 from logger.logger import get_logger
 from fastapi import Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import PlainTextResponse
 from backend.simple_rate_limit import simple_rate_limiter
 
-from src.langgraph_agents.agent_nodes import run_agent_workflow, build_html_report
+from src.langgraph_agents.agent_nodes import run_agent_workflow
 from src.langgraph_agents.state import AgentState
 logger = get_logger()
 
@@ -207,13 +207,16 @@ def analyze_stock(ticker: str = Query(..., description="Stock ticker symbol")) -
     return state
 
 
-@router.get("/analyze-html", response_class=HTMLResponse)
-def analyze_stock_html(ticker: str = Query(..., description="Stock ticker symbol")) -> HTMLResponse:
+@router.post("/generate-report")
+def generate_report(ticker: str = Query(..., description="Stock ticker symbol")) -> PlainTextResponse:
     """
-    Render the equity research analysis as an HTML report.
+    Generate only the final agent report for a ticker.
     """
     state = run_agent(ticker.upper())
-    return HTMLResponse(content=build_html_report(state), status_code=200)
+    report = state.get("final_report", "")
+    if not report:
+        raise HTTPException(status_code=500, detail=f"Report generation failed for {ticker.upper()}")
+    return PlainTextResponse(content=str(report), status_code=200)
 
 @router.get("/analyze-cache")
 def get_cached_analyze_state(ticker: str = Query(..., description="Stock ticker symbol")) -> Dict[str, Any]:
