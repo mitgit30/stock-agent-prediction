@@ -49,7 +49,7 @@ def generate_final_report(state: AgentState) -> AgentState:
 
     prompt = (
         "You are an equity research analyst.\n"
-        "Write a direct final research report in plain text (not JSON, no markdown code blocks).\n"
+        "Write a  final research report in plain text (not JSON, no markdown code blocks).\n"
         "Use only the provided input data.\n"
         "Report must include:\n"
         "1) Executive summary\n"

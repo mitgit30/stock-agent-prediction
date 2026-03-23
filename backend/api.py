@@ -255,3 +255,11 @@ def flush_outputs():
         "status": "success",
         "deleted_folders": deleted
     }
+    
+    
+    
+    
+    
+    
+    
+

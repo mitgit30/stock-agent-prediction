@@ -200,5 +200,5 @@ def get_company_news(state: AgentState, days: int = 7) -> AgentState:
     except Exception as e:
         state["company_news"] = {"error": str(e)}
         return state
-
-    
+ 
+ 
