@@ -64,6 +64,7 @@ Traditional stock prediction tools either focus purely on price data or purely o
 | **Feature Store** | Feast |
 | **MLOps & Versioning** | DagsHub, MLflow |
 | **Backend** | FastAPI, Uvicorn |
+| **Frontend** | Streamlit |
 | **Caching & Storage** | Redis, Redis Stack |
 | **Containerization** | Docker, Docker Compose |
 | **Monitoring** | Prometheus, Grafana, Loki, Promtail, Node Exporter |
@@ -94,6 +95,8 @@ Traditional stock prediction tools either focus purely on price data or purely o
 │   └── logger.py
 ├── logs/
 ├── outputs/
+├── frontend/
+│   └── app.py
 ├── prometheus/
 │   └── prometheus.yml
 │
@@ -246,7 +249,7 @@ Built with **LangGraph** for stateful, multi-step agent execution.
 - **Agent state caching** — latest `/analyze` state is saved in Redis and can be fetched later
 - **Rate limiting** — critical prediction endpoints protected against excessive usage
 - **Structured pipelines** — training and inference are fully decoupled
-- **HTML research output** — analysis can be rendered as an HTML-style report endpoint
+- **LLM report generation** — `/generate-report` returns direct plain-text final report
 - **Pydantic schemas** — strict request/response validation
 
 ### Key Endpoints
@@ -257,7 +260,7 @@ Built with **LangGraph** for stateful, multi-step agent execution.
 | `POST` | `/api/train-child/{ticker}` | Trigger child model training on specific ticker |
 | `POST` | `/api/predict-child/{ticker}` | Trigger prediction for a specific ticker |
 | `POST` | `/api/analyze?ticker=TSLA` | Run agent workflow and return structured JSON report |
-| `GET` | `/api/analyze-html?ticker=TSLA` | Render analysis as HTML-style report |
+| `POST` | `/api/generate-report?ticker=TSLA` | Generate plain-text final LLM report |
 | `GET` | `/api/analyze-cache?ticker=TSLA` | Fetch last saved analysis state from Redis |
 | `POST` | `/api/flush-outputs` | Flush all cached outputs |
 
@@ -318,6 +321,9 @@ docker compose up -d
 
 # Or run only API locally (without Dockerized FastAPI)
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run Streamlit frontend
+streamlit run frontend/app.py
 ```
 
 ---
