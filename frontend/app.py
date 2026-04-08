@@ -82,7 +82,7 @@ def render_summary_cards(analyze_data: Dict[str, Any]) -> None:
 def main() -> None:
     st.set_page_config(page_title="Stock Agent Frontend", page_icon="📈", layout="wide")
     st.title("📈 Stock Agent Frontend")
-    st.caption("Flow: Train -> Predict -> Analyze -> Generate Report -> Read Cache")
+    st.caption("Flow: Train -> Predict -> Analyze -> Generate Report -> View Cache")
 
     with st.sidebar:
         st.header("Configuration")
@@ -97,62 +97,62 @@ def main() -> None:
         st.warning("Please enter a ticker in the sidebar.")
         st.stop()
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-        ["Train", "Predict", "Analyze JSON", "Final Report", "Cache"]
-    )
+    model_tab, report_tab = st.tabs(["Model Operations", "Report Center"])
 
-    with tab1:
-        st.subheader("Model Training")
-        c1, c2 = st.columns(2)
+    with model_tab:
+        st.subheader("Training and Inference")
+        op1, op2, op3 = st.columns(3)
 
-        with c1:
+        with op1:
+            st.markdown("#### Train")
             if st.button("Train Parent", use_container_width=True):
                 res = call_api("POST", backend_url, "/train-parent")
                 show_api_result(res, "Parent training endpoint triggered.")
-
-        with c2:
             if st.button("Train Child", use_container_width=True):
                 res = call_api("POST", backend_url, "/train-child", params={"ticker": ticker})
                 show_api_result(res, f"Child training endpoint triggered for {ticker}.")
 
-    with tab2:
-        st.subheader("Prediction")
-        if st.button("Run Predict Child", use_container_width=True):
-            res = call_api("POST", backend_url, "/predict-child", params={"ticker": ticker})
-            show_api_result(res, f"Prediction completed for {ticker}.")
+        with op2:
+            st.markdown("#### Predict")
+            if st.button("Run Predict Child", use_container_width=True):
+                res = call_api("POST", backend_url, "/predict-child", params={"ticker": ticker})
+                show_api_result(res, f"Prediction completed for {ticker}.")
 
-    with tab3:
-        st.subheader("Analyze (Full State JSON)")
-        if st.button("Run Analyze", use_container_width=True):
-            res = call_api("POST", backend_url, "/analyze", params={"ticker": ticker})
-            if res["ok"] and isinstance(res["data"], dict):
-                st.success(f"Analysis completed for {ticker}.")
-                render_summary_cards(res["data"])
-                st.markdown("### Raw Analyze Response")
-                st.json(res["data"])
-            else:
-                show_api_result(res, "")
+        with op3:
+            st.markdown("#### Analyze JSON")
+            if st.button("Run Analyze", use_container_width=True):
+                res = call_api("POST", backend_url, "/analyze", params={"ticker": ticker})
+                if res["ok"] and isinstance(res["data"], dict):
+                    st.success(f"Analysis completed for {ticker}.")
+                    render_summary_cards(res["data"])
+                    with st.expander("Raw Analyze Response", expanded=False):
+                        st.json(res["data"])
+                else:
+                    show_api_result(res, "")
 
-    with tab4:
-        st.subheader("Final Report (LLM Text)")
-        if st.button("Generate Final Report", use_container_width=True):
-            res = call_api("POST", backend_url, "/generate-report", params={"ticker": ticker})
-            if res["ok"]:
-                st.success(f"Final report generated for {ticker}.")
-                st.markdown("### Report")
-                st.text_area("LLM Output", value=str(res["data"]), height=420)
-            else:
-                show_api_result(res, "")
+    with report_tab:
+        st.subheader("Final Report and Cache")
+        rep1, rep2 = st.columns(2)
 
-    with tab5:
-        st.subheader("Analyze Cache")
-        if st.button("Get Cached Analyze State", use_container_width=True):
-            res = call_api("GET", backend_url, "/analyze-cache", params={"ticker": ticker})
-            show_api_result(res, f"Fetched cache for {ticker}.")
+        with rep1:
+            st.markdown("#### Generate Report")
+            if st.button("Generate Final Report", use_container_width=True):
+                res = call_api("POST", backend_url, "/generate-report", params={"ticker": ticker})
+                if res["ok"]:
+                    st.success(f"Final report generated for {ticker}.")
+                    st.text_area("LLM Output", value=str(res["data"]), height=500)
+                else:
+                    show_api_result(res, "")
+
+        with rep2:
+            st.markdown("#### View Cached State")
+            if st.button("Get Cached Analyze State", use_container_width=True):
+                res = call_api("GET", backend_url, "/analyze-cache", params={"ticker": ticker})
+                show_api_result(res, f"Fetched cache for {ticker}.")
 
     st.divider()
     st.caption(
-        "Tip: if report generation fails, first run Predict Child to populate Redis, then run Analyze / Generate Report."
+        "Tip: first run Predict Child to warm Redis, then Analyze/Generate Report for richer outputs."
     )
 
 
