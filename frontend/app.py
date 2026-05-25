@@ -2,6 +2,7 @@ import json
 import os
 from typing import Any, Dict, Optional
 
+import pandas as pd
 import requests
 import streamlit as st
 
@@ -79,27 +80,87 @@ def render_summary_cards(analyze_data: Dict[str, Any]) -> None:
         st.write(f"**News Narrative:** {news.get('narrative', 'N/A')}")
 
 
+def render_report_view(report_text: str) -> None:
+    text = (report_text or "").strip()
+    if not text:
+        st.warning("No report content available.")
+        return
+
+    st.markdown("### Final Report")
+    st.markdown(text)
+
+
+def render_predict_view(payload: Any, ticker: str) -> None:
+    if not isinstance(payload, dict):
+        st.text(str(payload))
+        return
+
+    body = payload.get("result", payload)
+    data = body[0] if isinstance(body, list) and body else body
+    cache_hit = body[1] if isinstance(body, list) and len(body) > 1 else None
+
+    if not isinstance(data, dict):
+        st.text(str(data))
+        return
+
+    st.success(f"Prediction completed for {ticker}.")
+    st.metric("Ticker", data.get("ticker", ticker))
+
+    preds = data.get("predictions", {})
+    next_day = preds.get("next_day", {}) if isinstance(preds, dict) else {}
+    next_week = preds.get("next_week", {}) if isinstance(preds, dict) else {}
+    full_forecast = preds.get("full_forecast", []) if isinstance(preds, dict) else []
+
+    st.markdown("#### Next Day Forecast")
+    if isinstance(next_day, dict) and next_day:
+        st.table(pd.DataFrame([next_day]))
+    else:
+        st.info("No next-day forecast available.")
+
+    st.markdown("#### Next Week Range")
+    if isinstance(next_week, dict) and next_week:
+        st.table(pd.DataFrame([next_week]))
+    else:
+        st.info("No next-week range available.")
+
+    st.markdown("#### Full Forecast Window")
+    if isinstance(full_forecast, list) and full_forecast:
+        st.dataframe(pd.DataFrame(full_forecast), use_container_width=True)
+    else:
+        st.info("No full-forecast data available.")
+
+    history = data.get("history", [])
+    if isinstance(history, list) and history:
+        st.markdown("#### Recent History")
+        st.dataframe(pd.DataFrame(history), use_container_width=True)
+
+
+
 def main() -> None:
     st.set_page_config(page_title="Stock Agent Frontend", page_icon="📈", layout="wide")
-    st.title("📈 Stock Agent Frontend")
+    st.title("Stock Agent Frontend")
     st.caption("Flow: Train -> Predict -> Analyze -> Generate Report -> View Cache")
+    backend_url = DEFAULT_BACKEND_URL
+
+    if "active_page" not in st.session_state:
+        st.session_state.active_page = "train"
+    if "selected_ticker" not in st.session_state:
+        st.session_state.selected_ticker = "MSFT"
 
     with st.sidebar:
-        st.header("Configuration")
-        backend_url = st.text_input("Backend URL", value=DEFAULT_BACKEND_URL)
-        ticker = st.text_input("Ticker", value="MSFT").strip().upper()
-        st.divider()
-        if st.button("Check Backend Health", use_container_width=True):
-            health = call_api("GET", backend_url, "/")
-            show_api_result(health, "Backend is reachable.")
+        st.header("Navigation")
+        if st.button("Train Model", use_container_width=True):
+            st.session_state.active_page = "train"
+        if st.button("View Report", use_container_width=True):
+            st.session_state.active_page = "report"
 
-    if not ticker:
-        st.warning("Please enter a ticker in the sidebar.")
-        st.stop()
+    if st.session_state.active_page == "train":
+        ticker = st.text_input("Ticker", value=st.session_state.selected_ticker, key="train_ticker").strip().upper()
+        st.session_state.selected_ticker = ticker or st.session_state.selected_ticker
+        if not ticker:
+            st.warning("Please enter a ticker.")
+            st.stop()
 
-    model_tab, report_tab = st.tabs(["Model Operations", "Report Center"])
-
-    with model_tab:
         st.subheader("Training and Inference")
         op1, op2, op3 = st.columns(3)
 
@@ -116,44 +177,31 @@ def main() -> None:
             st.markdown("#### Predict")
             if st.button("Run Predict Child", use_container_width=True):
                 res = call_api("POST", backend_url, "/predict-child", params={"ticker": ticker})
-                show_api_result(res, f"Prediction completed for {ticker}.")
-
-        with op3:
-            st.markdown("#### Analyze JSON")
-            if st.button("Run Analyze", use_container_width=True):
-                res = call_api("POST", backend_url, "/analyze", params={"ticker": ticker})
-                if res["ok"] and isinstance(res["data"], dict):
-                    st.success(f"Analysis completed for {ticker}.")
-                    render_summary_cards(res["data"])
-                    with st.expander("Raw Analyze Response", expanded=False):
-                        st.json(res["data"])
-                else:
-                    show_api_result(res, "")
-
-    with report_tab:
-        st.subheader("Final Report and Cache")
-        rep1, rep2 = st.columns(2)
-
-        with rep1:
-            st.markdown("#### Generate Report")
-            if st.button("Generate Final Report", use_container_width=True):
-                res = call_api("POST", backend_url, "/generate-report", params={"ticker": ticker})
                 if res["ok"]:
-                    st.success(f"Final report generated for {ticker}.")
-                    st.text_area("LLM Output", value=str(res["data"]), height=500)
+                    render_predict_view(res["data"], ticker)
                 else:
                     show_api_result(res, "")
 
-        with rep2:
-            st.markdown("#### View Cached State")
-            if st.button("Get Cached Analyze State", use_container_width=True):
-                res = call_api("GET", backend_url, "/analyze-cache", params={"ticker": ticker})
-                show_api_result(res, f"Fetched cache for {ticker}.")
+      
+    else:
+        ticker = st.text_input("Ticker", value=st.session_state.selected_ticker, key="report_ticker").strip().upper()
+        st.session_state.selected_ticker = ticker or st.session_state.selected_ticker
+        if not ticker:
+            st.warning("Please enter a ticker.")
+            st.stop()
+
+        st.subheader("Final Report")
+        st.markdown("#### Generate Report")
+        if st.button("Generate Final Report", use_container_width=True):
+            res = call_api("POST", backend_url, "/generate-report", params={"ticker": ticker})
+            if res["ok"]:
+                st.success(f"Final report generated for {ticker}.")
+                render_report_view(str(res["data"]))
+            else:
+                show_api_result(res, "")
 
     st.divider()
-    st.caption(
-        "Tip: first run Predict Child to warm Redis, then Analyze/Generate Report for richer outputs."
-    )
+
 
 
 if __name__ == "__main__":
