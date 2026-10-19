@@ -70,71 +70,7 @@ Traditional stock prediction tools either focus purely on price data or purely o
 | **Monitoring** | Prometheus, Grafana, Loki, Promtail, Node Exporter |
 | **Package Management** | UV |
 
----
 
-## 📁 Project Structure
-
-```
-
-│
-├── backend/                        # FastAPI backend service
-│   ├── redis_server/
-│   │   └── redis_client.py
-│   ├── api.py
-│   ├── helper_tasks.py
-│   ├── main.py
-│   ├── metrics.py
-│   ├── requirements.txt
-│   ├── simple_rate_limit.py
-│   └── DockerFile
-├── feature_store/                  # Feast feature store
-│   └── data/
-├── feature_store_sample/           # Sample Feast setup
-│   └── data/
-├── logger/
-│   └── logger.py
-├── logs/
-├── outputs/
-├── frontend/
-│   └── app.py
-├── prometheus/
-│   └── prometheus.yml
-│
-├── src/                            # Core ML + agent code
-│   ├── data/
-│   │   ├── fomc_dates_2026.json
-│   │   ├── ingestion.py
-│   │   └── preparation.py
-│   ├── langgraph_agents/
-│   │   ├── agent_nodes.py
-│   │   ├── agent_tools.py
-│   │   └── state.py
-│   ├── model/
-│   │   ├── definition.py
-│   │   ├── evaluation.py
-│   │   ├── saving.py
-│   │   └── training.py
-│   ├── pipelines/
-│   │   ├── inference_pipeline.py
-│   │   └── training_pipeline.py
-│   ├── __init__.py
-│   ├── config.py
-│   ├── exception.py
-│   ├── inference.py
-│   └── utils.py
-├── tests/
-│   ├── __init__.py
-│   ├── test_feast.py
-│   ├── test_nodes.py
-│   └── test_ohlcv.py
-├── docker-compose.yml
-├── main.py
-├── promtail-config.yml
-├── pyproject.toml
-└── README.md
-```
-
----
 
 ## 🤖 ML System — Transfer Learning
 
